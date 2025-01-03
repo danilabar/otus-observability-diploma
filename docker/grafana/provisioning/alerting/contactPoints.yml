@@ -1,0 +1,15 @@
+apiVersion: 1
+
+contactPoints:
+  - orgId: 1
+    name: telegram
+    receivers:
+      - type: telegram
+        uid: telegram_notifie
+        settings:
+          bottoken: $TG_TOKEN
+          chatid: |
+            $TG_CHAT_ID
+          uploadImage: true
+          message: |
+            {{ template "default.message" . }}

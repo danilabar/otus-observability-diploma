@@ -1,0 +1,103 @@
+global:
+  scrape_interval: 5s
+  external_labels:
+    site: prod
+
+remote_write:
+  - url: http://promvm-1.home.local:8428/api/v1/write
+    queue_config:
+      max_samples_per_send: 10000
+      capacity: 20000
+      max_shards: 30
+
+scrape_configs:
+  - job_name: 'nomad_metrics'
+    consul_sd_configs:
+    - server: http://hc-server-1.home.local:8500
+      services: ['nomad-client', 'nomad']
+    relabel_configs:
+    - source_labels: ['__meta_consul_tags']
+      regex: '(.*)http(.*)'
+      action: keep
+    - source_labels: ['__meta_consul_node']
+      replacement: '$1'
+      target_label: instance
+    scrape_interval: 25s
+    metrics_path: /v1/metrics
+    scheme: http
+    params:
+      format: ['prometheus']
+
+  - job_name: 'consul_metrics'
+    static_configs:
+      - targets:
+        - hc-server-1.home.local:8500
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        regex: '([^:]+)(:[0-9]+)?'
+        replacement: '${1}'
+    scrape_interval: 25s
+    metrics_path: /v1/agent/metrics
+    scheme: http
+    params:
+      format: ['prometheus']
+
+  - job_name: 'node_metrics'
+    consul_sd_configs:
+    - server: http://hc-server-1.home.local:8500
+      services: ['node-exporter']
+    relabel_configs:
+    - source_labels: ['__meta_consul_tags']
+      regex: '(.*)monitoring(.*)'
+      action: keep
+    - source_labels: ['__meta_consul_node']
+      replacement: '$1'
+      target_label: instance
+    scrape_interval: 5s
+    metrics_path: /metrics
+    scheme: http
+
+  - job_name: 'nginx_metrics'
+    consul_sd_configs:
+    - server: http://hc-server-1.home.local:8500
+      services: ['nginx-exporter']
+    relabel_configs:
+    - source_labels: ['__meta_consul_tags']
+      regex: '(.*)monitoring(.*)'
+      action: keep
+    - source_labels: ['__meta_consul_node']
+      replacement: '$1'
+      target_label: instance
+    scrape_interval: 5s
+    metrics_path: /metrics
+    scheme: http
+
+  - job_name: 'blackbox'
+    metrics_path: /probe
+    params:
+      module: [http_2xx]  # Look for a HTTP 200 response.
+    static_configs:
+      - targets:
+        - http://hc-client-1.home.local:8080    # Target to probe with http.
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: promvm-1.home.local:9115  # The blackbox exporter's real hostname:port.
+  - job_name: 'blackbox_exporter'  # collect blackbox exporter's operational metrics.
+    static_configs:
+      - targets: ['promvm-1.home.local:9115']
+
+  - job_name: 'prom'
+    static_configs:
+      - targets:
+          - promvm-1.home.local:9090
+          - promvm-1.home.local:9100
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        regex: '([^:]+)(:[0-9]+)?'
+        replacement: '${1}'

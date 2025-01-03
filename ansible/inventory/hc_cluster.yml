@@ -1,0 +1,31 @@
+---
+consul_server_node:
+  hosts:
+    hc-server-1.home.local:
+
+nomad_server_node:
+  hosts:
+    hc-server-1.home.local:
+
+consul_client_node:
+  hosts:
+    hc-client-1.home.local:
+
+nomad_client_node:
+  hosts:
+    hc-client-1.home.local:
+
+monitoring_node:
+  hosts:
+    promvm-1.home.local:
+
+linux_node:
+  children:
+    server_node:
+      children:
+        consul_server_node:
+        nomad_server_node:
+    client_node:
+      children:
+        consul_client_node:
+        nomad_client_node:

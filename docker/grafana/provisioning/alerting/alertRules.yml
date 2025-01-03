@@ -1,0 +1,210 @@
+apiVersion: 1
+groups:
+    - orgId: 1
+      name: evaluation_group_app_1
+      folder: app
+      interval: 1m
+      rules:
+        - uid: ce8w4i2pvkm4gf
+          title: Nginx status
+          condition: Threshold
+          data:
+            - refId: Nginx status
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: prometheus_main
+              model:
+                datasource:
+                    type: prometheus
+                    uid: prometheus_main
+                editorMode: code
+                exemplar: false
+                expr: nginx_up
+                instant: true
+                intervalMs: 1000
+                legendFormat: __auto
+                maxDataPoints: 43200
+                range: false
+                refId: Nginx status
+            - refId: Threshold
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 1
+                            - 1
+                        type: outside_range
+                      operator:
+                        type: and
+                      query:
+                        params: []
+                      reducer:
+                        params: []
+                        type: avg
+                      type: query
+                datasource:
+                    name: Expression
+                    type: __expr__
+                    uid: __expr__
+                expression: Nginx status
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: Threshold
+                type: threshold
+          dashboardUid: 4DFTt9Wnk
+          panelId: 23
+          noDataState: Alerting
+          execErrState: Error
+          for: 1m
+          annotations:
+            __dashboardUid__: 4DFTt9Wnk
+            __panelId__: "23"
+          labels: {}
+          isPaused: false
+    - orgId: 1
+      name: evaluation_group_infra_1
+      folder: infra
+      interval: 1m
+      rules:
+        - uid: ae1a7rmk0a6m8c
+          title: CPU Usage
+          condition: High CPU Usage
+          data:
+            - refId: High CPU Usage
+              relativeTimeRange:
+                from: 120
+                to: 0
+              datasourceUid: prometheus_main
+              model:
+                editorMode: code
+                expr: round(sum by (instance) (avg by (mode, instance) (rate(node_cpu_seconds_total{mode!="idle"}[1m]))), 0.1)
+                instant: true
+                intervalMs: 1000
+                legendFormat: __auto
+                maxDataPoints: 43200
+                range: false
+                refId: High CPU Usage
+            - refId: Firing
+              relativeTimeRange:
+                from: 120
+                to: 0
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 0.8
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: High CPU Usage
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: Firing
+                type: threshold
+          dashboardUid: rYdddlPWk
+          panelId: 77
+          noDataState: NoData
+          execErrState: Error
+          for: 1m
+          annotations:
+            __dashboardUid__: rYdddlPWk
+            __panelId__: "77"
+          labels: {}
+          isPaused: false
+        - uid: ae8wend3xkgzka
+          title: Consul State
+          condition: Consul State
+          data:
+            - refId: Consul State
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: prometheus_main
+              model:
+                editorMode: code
+                exemplar: false
+                expr: rate(consul_raft_state_leader[60s])
+                instant: true
+                intervalMs: 1000
+                legendFormat: __auto
+                maxDataPoints: 43200
+                range: false
+                refId: Consul State
+          noDataState: Alerting
+          execErrState: Error
+          for: 1m
+          annotations: {}
+          labels: {}
+          isPaused: false
+        - uid: ce8wiy6opt9tsa
+          title: Nomad Status
+          condition: Threshold
+          data:
+            - refId: Nomad Status
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: prometheus_main
+              model:
+                disableTextWrap: false
+                editorMode: code
+                exemplar: false
+                expr: rate(nomad_memberlist_gossip_count[1m])
+                fullMetaSearch: false
+                includeNullMetadata: false
+                instant: true
+                intervalMs: 1000
+                legendFormat: __auto
+                maxDataPoints: 43200
+                range: false
+                refId: Nomad Status
+                useBackend: false
+            - refId: Threshold
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 0
+                            - 0
+                        type: lt
+                      operator:
+                        type: and
+                      query:
+                        params: []
+                      reducer:
+                        params: []
+                        type: avg
+                      type: query
+                datasource:
+                    name: Expression
+                    type: __expr__
+                    uid: __expr__
+                expression: Nomad Status
+                hide: false
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: Threshold
+                type: threshold
+          noDataState: Alerting
+          execErrState: Error
+          for: 1m
+          annotations: {}
+          labels: {}
+          isPaused: false

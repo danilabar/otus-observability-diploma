@@ -1,0 +1,25 @@
+---
+- name: Nomad Facts
+  ansible.builtin.set_fact:
+    nomad_server: "{{ inventory_hostname in groups.nomad_server_node }}"
+
+- name: Add HashiCorp repo
+  ansible.builtin.yum_repository:
+    name: hashicorp
+    description: Hashicorp Stable - $basearch
+    baseurl: https://rpm.releases.hashicorp.com/RHEL/$releasever/$basearch/stable
+    gpgcheck: no
+    enabled: yes
+
+- name: Install the latest version of Nomad
+  ansible.builtin.dnf:
+    name: nomad
+    state: latest
+  notify: start nomad
+
+- name: Create Nomad Config
+  ansible.builtin.template:
+    src: "etc/nomad.d/nomad.hcl.j2"
+    dest: /etc/nomad.d/nomad.hcl
+    mode: 0644
+  notify: restart nomad

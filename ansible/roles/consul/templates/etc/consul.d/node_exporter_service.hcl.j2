@@ -1,0 +1,24 @@
+service {
+  name = "node-exporter"
+  id   = "node-exporter-{{inventory_hostname_short}}"
+  port = 9100
+  tags = ["monitoring"]
+  tagged_addresses = {
+    lan = {
+      address = "127.0.0.1"
+      port    = 9100
+    }
+
+    wan = {
+      address = "127.0.0.1"
+      port    = 9100
+    }
+  }
+  checks = [
+    {
+      name     = "Node Exporter Health"
+      http     = "http://localhost:9100"
+      interval = "15s"
+    }
+  ]
+}

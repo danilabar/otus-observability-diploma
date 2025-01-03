@@ -1,0 +1,10 @@
+---
+- name: Start Docker
+  listen: "start docker"
+  become: true
+  ansible.builtin.systemd:
+    daemon_reload: true
+    name: docker
+    state: started
+    enabled: true
+

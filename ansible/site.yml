@@ -1,0 +1,32 @@
+---
+- name: Prepare Server Node
+  hosts: server_node
+  roles:
+    - role: consul
+      vars:
+        - consul_service_node_exporter: true
+    - role: nomad
+    - role: alloy
+    - role: prometheus.prometheus.node_exporter
+
+- name: Prepare Client Node
+  hosts: client_node
+  roles:
+    - role: docker
+    - role: consul
+      vars:
+        - consul_service_node_exporter: true
+        - consul_service_nginx_exporter: true
+    - role: nomad
+    - role: alloy
+    - role: prometheus.prometheus.node_exporter
+    - role: prometheus.prometheus.nginx_exporter
+      vars:
+        - nginx_exporter_scrape_uri: "http://hc-client-1.home.local:8080/server-status"
+
+- name: Prepare Monitoring Node
+  hosts: monitoring_node
+  roles:
+    - role: docker
+    - role: prometheus.prometheus.node_exporter
+    - role: prometheus.prometheus.blackbox_exporter

@@ -1,0 +1,16 @@
+---
+- name: Start alloy
+  listen: "start alloy"
+  become: true
+  ansible.builtin.systemd:
+    daemon_reload: true
+    name: alloy
+    state: started
+    enabled: true
+
+- name: Restart alloy
+  listen: "restart alloy"
+  become: true
+  ansible.builtin.systemd:
+    name: alloy
+    state: restarted

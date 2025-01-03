@@ -1,0 +1,48 @@
+---
+- name: Consul Facts
+  ansible.builtin.set_fact:
+    consul_server: "{{ inventory_hostname in groups.consul_server_node }}"
+
+- name: Add HashiCorp repo
+  ansible.builtin.yum_repository:
+    name: hashicorp
+    description: Hashicorp Stable - $basearch
+    baseurl: https://rpm.releases.hashicorp.com/RHEL/$releasever/$basearch/stable
+    gpgcheck: no
+    enabled: yes
+
+- name: Install the latest version of Consul
+  ansible.builtin.dnf:
+    name: consul
+    state: latest
+  notify: start consul
+
+- name: Set cap_net_bind_service=+ep on /bin/consul
+  community.general.capabilities:
+    path: /bin/consul
+    capability: cap_net_bind_service=+ep
+    state: present
+  changed_when: false
+
+- name: Create Consul Config
+  ansible.builtin.template:
+    src: "etc/consul.d/consul.hcl.j2"
+    dest: /etc/consul.d/consul.hcl
+    mode: 0644
+  notify: restart consul
+
+- name: Create Consul Service Node Exporter Config
+  ansible.builtin.template:
+    src: "etc/consul.d/node_exporter_service.hcl.j2"
+    dest: /etc/consul.d/node_exporter_service.hcl
+    mode: 0644
+  when: consul_service_node_exporter | bool
+  notify: restart consul
+
+- name: Create Consul Service Nginx Exporter Config
+  ansible.builtin.template:
+    src: "etc/consul.d/nginx_exporter_service.hcl.j2"
+    dest: /etc/consul.d/nginx_exporter_service.hcl
+    mode: 0644
+  when: consul_service_nginx_exporter | bool
+  notify: restart consul

@@ -1,0 +1,51 @@
+domain                = "otus"
+datacenter            = "home"
+node_name             = "{{ inventory_hostname_short }}"
+log_level             = "INFO"
+discard_check_output  = true
+disable_update_check  = true
+check_update_interval = "0s"
+data_dir              = "/opt/consul"
+retry_join            = [ {{ '\"' +  groups.consul_server_node | join('\", \"') + '\"' }} ]
+advertise_addr        = "{% raw %}{{ GetPrivateInterfaces | include \"network\" \"192.168.1.0/24\" | attr \"address\" }}{% endraw %}"
+bind_addr             = "{% raw %}{{ GetPrivateInterfaces | include \"network\" \"192.168.1.0/24\" | attr \"address\" }}{% endraw %}"
+
+
+{% if consul_server %}
+bootstrap_expect      = {{ groups.consul_server_node | length }}
+server                = true
+ui_config{
+  enabled             = true
+}
+{% endif %}
+
+limits {
+  http_max_conns_per_client = 1000
+}
+
+addresses {
+  http                = "0.0.0.0"
+  dns                 = "0.0.0.0"
+}
+
+ports {
+  dns                 = 53
+}
+
+dns_config {
+  allow_stale         = true
+  max_stale           = "2h"
+  node_ttl            = "15s"
+  service_ttl         = {
+    "*"               = "60s"
+  }
+}
+
+telemetry {
+  disable_hostname          = true
+  prometheus_retention_time = "20s"
+}
+
+connect {
+  enabled             = true
+}

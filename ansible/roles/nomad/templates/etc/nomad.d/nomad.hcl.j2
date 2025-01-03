@@ -1,0 +1,80 @@
+region                              = "otus"
+datacenter                          = "home"
+data_dir                            = "/opt/nomad/data"
+name                                = "{{ inventory_hostname_short }}"
+disable_update_check                = true
+
+{% if nomad_server -%}
+server {
+  enabled                           = {{ nomad_server | bool | lower }}
+  job_gc_threshold                  = "48h"
+  min_heartbeat_ttl                 = "30s"
+  heartbeat_grace                   = "2m"
+  bootstrap_expect                  = {{ groups.nomad_server_node | length }}
+}
+{% endif -%}
+
+consul {
+  address                           = "127.0.0.1:8500"
+}
+
+addresses {
+  http                              = "0.0.0.0"
+}
+
+advertise {
+  http                              = "{% raw %}{{ GetPrivateInterfaces | include \"network\" \"192.168.1.0/24\" | attr \"address\" }}{% endraw %}"
+  rpc                               = "{% raw %}{{ GetPrivateInterfaces | include \"network\" \"192.168.1.0/24\" | attr \"address\" }}{% endraw %}"
+  serf                              = "{% raw %}{{ GetPrivateInterfaces | include \"network\" \"192.168.1.0/24\" | attr \"address\" }}{% endraw %}"
+}
+
+{% if not nomad_server -%}
+client {
+  enabled                           = true
+  gc_interval                       = "96h"
+  node_class                        = "linux"
+  artifact {
+    decompression_file_count_limit  = 0
+    options { 
+      archive                       = false
+    }
+  }
+  options {
+    "driver.allowlist"              = "docker,raw_exec"
+    "driver.raw_exec.enable"        = "1"
+    "docker.volumes.enabled"        = true
+    "docker.cleanup.image.delay"    = "96h"
+  }
+
+  host_network "docker" {
+    cidr                            = "172.17.0.0/24"
+  }
+
+  host_network "local" {
+    cidr                            = "127.0.0.0/24"
+  }
+}
+{%- endif %}
+
+telemetry {
+  use_node_name                     = false
+  disable_hostname                  = true
+  publish_allocation_metrics        = true
+  publish_node_metrics              = true
+  prometheus_metrics                = true
+  collection_interval               = "20s"
+}
+
+{% if not nomad_server -%}
+plugin "docker" {
+  config {
+    extra_labels                    = ["job_name", "job_id", "task_group_name", "task_name", "namespace", "node_name", "node_id"]
+
+    allow_privileged                = true
+    allow_caps                      = ["sys_admin", "dac_read_search", "audit_write", "chown", "dac_override", "fowner", "fsetid", "kill", "mknod", "net_bind_service", "setfcap", "setgid", "setpcap", "setuid", "sys_chroot", "net_raw", "sys_ptrace"]
+    volumes {
+      enabled                       = true
+    }
+  }
+}
+{%- endif %}

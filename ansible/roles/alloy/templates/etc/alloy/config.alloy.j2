@@ -1,0 +1,126 @@
+// --------------- journald rules ---------------
+
+loki.relabel "journal" {
+  forward_to = []
+
+  rule {
+    source_labels = ["__journal__systemd_unit"]
+    target_label  = "unit"
+  }
+
+  rule {
+    source_labels = ["__journal_message"]
+    regex         = "(.*)(\\[)([A-Z]+)(\\])(.*)"
+    replacement   = "$3"
+    target_label  = "level"
+  }
+
+  rule {
+    source_labels = ["__journal__hostname"]
+    target_label  = "instance"
+  }
+
+  rule {
+    action        = "lowercase"
+    source_labels = ["level"]
+    target_label  = "level"
+  }
+}
+
+// --------------- journald nomad ---------------
+
+loki.source.journal "nomad"  {
+  forward_to    = [loki.write.grafana_loki.receiver]
+  relabel_rules = loki.relabel.journal.rules
+  matches       = "_SYSTEMD_UNIT=nomad.service"
+  labels        = {component = "loki.source.journal"}
+}
+
+// --------------- journald consul ---------------
+
+loki.source.journal "consul"  {
+  forward_to    = [loki.write.grafana_loki.receiver]
+  relabel_rules = loki.relabel.journal.rules
+  matches       = "_SYSTEMD_UNIT=consul.service"
+  labels        = {component = "loki.source.journal"}
+}
+
+{% if inventory_hostname in groups.nomad_client_node %}
+// --------------- discovery consul ---------------
+
+discovery.consul "nomad_alloc" {
+  server = "127.0.0.1:8500"
+}
+
+// --------------- discovery consul relabel rules ---------------
+
+discovery.relabel "nomad_alloc" {
+  targets         = discovery.consul.nomad_alloc.targets
+
+  rule {
+    source_labels = ["__meta_consul_node"]
+    target_label  = "__host__"
+  }
+
+  rule {
+    source_labels = ["__meta_consul_service_metadata_external_source"]
+    regex         = "(.*)"
+    replacement   = "$1"
+    target_label  = "source"
+  }
+
+  rule {
+    source_labels = ["__meta_consul_service_id"]
+    regex         = "_nomad-task-([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})-.*"
+    replacement   = "$1"
+    target_label  = "task_id"
+  }
+
+  rule {
+    source_labels = ["__meta_consul_tags"]
+    regex         = ",(app|monitoring),"
+    replacement   = "$1"
+    target_label  = "group"
+  }
+
+  rule {
+    source_labels = ["__meta_consul_service"]
+    target_label  = "nomad_job"
+  }
+
+  rule {
+    source_labels = ["__meta_consul_node"]
+    regex         = "(.*)"
+    replacement   = "$1"
+    target_label  = "instance"
+  }
+
+  rule {
+    source_labels = ["__meta_consul_service_id"]
+    regex         = "_nomad-task-([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})-.*"
+    replacement   = "/opt/nomad/data/alloc/$1/alloc/logs/*std*.{?,??}"
+    target_label  = "__path__"
+  }
+}
+
+local.file_match "nomad_alloc" {
+  path_targets = discovery.relabel.nomad_alloc.output
+}
+
+loki.source.file "nomad_alloc" {
+  targets    = local.file_match.nomad_alloc.targets
+  forward_to = [loki.write.grafana_loki.receiver]
+}
+{% endif %}
+
+// --------------- output ---------------
+
+loki.write "grafana_loki" {
+    endpoint {
+        url = "http://promvm-1.home.local:3100/loki/api/v1/push"
+        // basic_auth {
+            // username = "admin"
+            // password = "admin"
+        // }
+    }
+}
